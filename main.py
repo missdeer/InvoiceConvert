@@ -10,6 +10,7 @@ import pandas as pd
 import openpyxl
 import re
 import warnings
+import argparse
 from pathlib import Path
 
 # Suppress openpyxl style warnings
@@ -432,20 +433,53 @@ def process_excel(input_file, output_file, pdf_directory=None, pdf_recursive=Fal
 
 def main():
     """Main entry point."""
-    if len(sys.argv) < 2 or len(sys.argv) > 4:
-        print("用法: python main.py <输入Excel文件> [输出Excel文件] [PDF目录]")
-        print("示例: python main.py input.xlsx output.xlsx")
-        print("示例: python main.py input.xlsx  (输出文件将在相同目录下创建为'报销.xlsx')")
-        print("示例: python main.py input.xlsx output.xlsx ./pdfs  (指定PDF目录，将递归搜索所有子目录)")
-        print("提示: 如果不指定PDF目录，将自动在输入文件同目录或其下的'pdfs'目录查找PDF文件（不递归）")
-        print("提示: 如果指定了PDF目录，将递归搜索该目录及其所有子目录中的PDF文件")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description='全量发票导出结果到报销表格的转换工具。从全量发票导出结果Excel文件读取数据并写入报销表格Excel文件，支持列映射和聚合。',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+示例:
+  python main.py input.xlsx
+    输出文件将在相同目录下创建为'报销.xlsx'
+
+  python main.py input.xlsx output.xlsx
+    指定输入和输出文件
+
+  python main.py input.xlsx output.xlsx ./pdfs
+    指定PDF目录，将递归搜索所有子目录
+
+提示:
+  - 如果不指定PDF目录，将自动在输入文件同目录或其下的'pdfs'目录查找PDF文件（不递归）
+  - 如果指定了PDF目录，将递归搜索该目录及其所有子目录中的PDF文件
+        """
+    )
     
-    input_file = sys.argv[1]
-    pdf_directory_specified = False  # Track if PDF directory was explicitly specified
+    parser.add_argument(
+        'input_file',
+        help='输入Excel文件路径（必须包含名为"信息汇总表"的工作表）'
+    )
+    
+    parser.add_argument(
+        'output_file',
+        nargs='?',
+        default=None,
+        help='输出Excel文件路径（可选，默认为输入文件同目录下的"报销.xlsx"）'
+    )
+    
+    parser.add_argument(
+        'pdf_directory',
+        nargs='?',
+        default=None,
+        help='PDF文件目录路径（可选，用于验证发票信息）'
+    )
+    
+    args = parser.parse_args()
+    
+    input_file = args.input_file
+    pdf_directory = args.pdf_directory
+    pdf_directory_specified = pdf_directory is not None
     
     # If output file is not provided, create "报销.xlsx" in the same directory as input file
-    if len(sys.argv) == 2:
+    if args.output_file is None:
         input_dir = os.path.dirname(os.path.abspath(input_file))
         if input_dir:
             output_file = os.path.join(input_dir, "报销.xlsx")
@@ -453,14 +487,8 @@ def main():
             # If input file is in current directory
             output_file = "报销.xlsx"
         print(f"未指定输出文件，使用: '{output_file}'")
-        pdf_directory = None
-    elif len(sys.argv) == 3:
-        output_file = sys.argv[2]
-        pdf_directory = None
-    else:  # len(sys.argv) == 4
-        output_file = sys.argv[2]
-        pdf_directory = sys.argv[3]
-        pdf_directory_specified = True  # PDF directory was explicitly specified
+    else:
+        output_file = args.output_file
     
     # If PDF directory is not provided, try to find it automatically
     if pdf_directory is None:
