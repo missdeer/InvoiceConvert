@@ -416,6 +416,8 @@ def process_excel(input_file, output_file, pdf_directory=None, pdf_recursive=Fal
     # PDF Verification (if PDF directory is provided or found automatically)
     if pdf_directory:
         verify_excel_with_pdf(result_df, pdf_directory=pdf_directory, recursive=pdf_recursive)
+    else:
+        print(f"\n⚠ 提醒: 未指定PDF目录，跳过PDF验证。如需验证，请指定PDF目录路径。")
     
     print(f"\n{'='*60}")
     print(f"✓ 转换完成!")
